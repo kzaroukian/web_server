@@ -14,7 +14,7 @@
 //Project 4  by Kaylin Zaroukian
 
 fd_set sockets;
-char* filename2;
+//char* filename2;
 // FILE* file;
 int using_file;
 
@@ -289,7 +289,7 @@ int main(int argc, char** argv) {
         memcpy(port, optarg, sizeof(optarg));
         break;
       case 'd':
-        memset(path,0,5000);
+        memcpy(path,optarg,sizeof(optarg));
         break;
       case 'l':
         // do something
@@ -311,21 +311,22 @@ int main(int argc, char** argv) {
   printf("PORT: %s, Path: %s,  File Name: %s\n",port,  path, filename );
 
   int serverport = atoi(port);
-  if (serverport < 70  || serverport > 65600) {
-    printf("Error cannot use this port, resetting to default of 8080\n");
-    serverport = 8080;
-    memcpy(port,"8080",4);
-  }
-   if (access(path, F_OK) == -1) {
-    printf("Invalid path, resetting to server home directory\n");
-    getcwd(path, sizeof(path));
-  }
-   if(strlen(filename) > 1) {
-     //using_file = 1;
-     //memcpy(filename2,filename,strlen(filename));
-  } else {
-    using_file = 0;
-  }
+  // if (serverport < 70  || serverport > 65600) {
+  //   printf("Error cannot use this port, resetting to default of 8080\n");
+  //   serverport = 8080;
+  //   memcpy(port,"8080",4);
+  // }
+  //  if (access(path, F_OK) == -1) {
+  //   printf("Invalid path, resetting to server home directory\n");
+  //   getcwd(path, sizeof(path));
+  // }
+  //  if(strlen(filename) > 1) {
+  //    //using_file = 1;
+  //    //memcpy(filename2,filename,strlen(filename));
+  // } else {
+  //   using_file = 0;
+  // }
+  using_file= 0;
 
 	struct sockaddr_in serveraddr,clientaddr;
 	serveraddr.sin_family=AF_INET;
