@@ -17,28 +17,24 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
     printf("entered send  response\n");
     time_t  current_time  =  time(NULL);
     struct tm tm = *localtime(&current_time);
-    char current_date[50];
+    char current_date[37];
     char date[1000];
     memcpy(current_date, "Date: ", 6);
     //char* date = asctime(&tm);
     strftime(date, sizeof date, "%a, %d %b %Y %H:%M:%S %Z", &tm);
-    memcpy(current_date+6, date, strlen(date));
-    //memcpy(current_date+6+strlen(date) ,"\r\n",2);
+    memcpy(current_date+ 6, date, strlen(date));
+    memcpy(current_date+ 6+strlen(date) ,"\r\n",2);
 
-
-    // may need to do something else
-    //printf("current date: %s\n", date);
-
-    // get the last time our file was last modified
     struct stat last_modified_time;
     stat(path,&last_modified_time);
-    char modified_date[1000];
+    char modified_date[100];
     struct tm file_tm = *localtime(&last_modified_time.st_mtime);
     //strftime(modified_date,100, "%")
     //modified_date = asctime(&file_tm);
     strftime(modified_date, sizeof modified_date, "%a, %d %b %Y %H:%M:%S %Z", &file_tm);
 
     printf("modified date  %s\n", modified_date);
+    printf("mod d ate  size  %d\n", strlen(modified_date));
 
     char msg_to_send[100000];
     printf("1\n");
@@ -77,10 +73,10 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
       printf("final  %s\n", final_val);
       printf("2\n");
 
-      char header_last_modified[120];
+      char header_last_modified[48];
       memcpy(header_last_modified, "Last-Modified: ",15);
       memcpy(header_last_modified+15, modified_date, strlen(modified_date));
-      memcpy(header_last_modified+strlen(header_last_modified),"\r\n",2);
+      memcpy(header_last_modified + strlen(modified_date)+15,"\r\n",2);
       printf("header_lm %s\n", header_last_modified);
 
 
@@ -114,10 +110,11 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
       char* file_size[16];
       //itoa(file_size,path_length,);
       sprintf(file_size, "%d", path_length);
-      char content_length[50];
+      char content_length[25];
       memcpy(content_length, "Content-Length: ", 16);
-      memcpy(content_length+16,file_size,strlen(file_size));
-      memcpy(content_length+strlen(content_length), "\r\n",2);
+      memcpy(content_length + 16,file_size,strlen(file_size));
+      memcpy(content_length+strlen(file_size)+16, "\r\n",2);
+      //memcpy(content_length+strlen(content_length)+16+2,"\0",1);
       printf("f l %s\n", content_length);
 
       // will probably need to set connection type differentlybut for now  thisw ill work
