@@ -38,7 +38,7 @@ int sendHTTPresoponse(char* version, char* path, int request_code, char* file_ex
 
     printf("modified date  %s\n", modified_date);
 
-    char msg_to_send[1000];
+    char msg_to_send[100000];
     printf("1\n");
     printf("version %s\n", version);
     printf("2\n");
@@ -287,21 +287,24 @@ int main(int argc, char** argv) {
             printf("get\n");
             // we received a get request
            // now parse request into tokens
-           char http_path[100];
+           char http_path[1000];
            char *req_path;
            char *http_version;
            char format_http[9];
+           char *pre_file_extension;
            char *file_extension;
            char* ignore_me;
            char temp_http[7];
            char temp_file_ext[5];
            char another_test[10];
+           char og_path[100];
            //this line  may be  the problem
            req_path = strtok(buf+3," ");
            printf("OG  path: %s\n", req_path);
            printf("path len %d\n",strlen(req_path) );
 
            int path_size = strlen(req_path);
+           memcpy(og_path,req_path,path_size);
 
            // TODO: may need to  change 4 to something else
           // file_extension = req_path + (path_size - 4);
@@ -316,7 +319,8 @@ int main(int argc, char** argv) {
 
              strcpy(another_test, format_http);
 
-             file_extension = strtok(req_path, ".");
+             pre_file_extension = strtok(req_path, ".");
+             file_extension = strtok(NULL,"");
              printf("file ext  %s\n", file_extension);
              printf("strtok not the problem\n");
            }
@@ -342,8 +346,13 @@ int main(int argc, char** argv) {
                //  do  nothing
 
              } else {
-               printf("yikes\n");
-               memcpy(http_path+strlen(path),req_path,strlen(req_path));
+               printf("yikes %d\n", strlen(req_path));
+               memcpy(http_path+strlen(path),og_path,strlen(og_path));
+               memcpy(temp_file_ext,file_extension,strlen(file_extension));
+
+              // memcpy(http_path+strlen(path)+strlen(req_path),".",1);
+               // memcpy(http_path+strlen(path)+strlen(req_path),file_extension,strlen(file_extension));
+               printf("new path: %s\n",http_path );
 
              }
 
