@@ -12,6 +12,7 @@
 #include <sys/select.h>
 
 fd_set sockets;
+//char* summary;
 
 int sendHTTPresoponse(char* holder, int v, char* version, char* path, int request_code, char* file_ext, int socket) {
     printf("entered send  response\n");
@@ -319,11 +320,8 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-  // specify port
-  //  this will need  to change but for right now its ok
-  //printf("Enter port number: ");
+
   char port[5000];
-  //fgets(port, 5000, stdin);
   memcpy(port,"8080",5000);
 
   char path[5000];
@@ -334,14 +332,8 @@ int main(int argc, char** argv) {
   FILE* file;
   char filename[5000];
 
-  // break up string to get the first char
-  // struct option longopts =  {
-  //   {"docroot",2,NULL,'d'}
-  //   {"logfile",2,NULL,'l'}
-  // };
-
   struct timeval timeout;
-	timeout.tv_sec = 2000000;
+	timeout.tv_sec = 20;
 	timeout.tv_usec = 0;
 
   int opt = 0;
@@ -349,7 +341,6 @@ int main(int argc, char** argv) {
     switch(opt) {
       case 'p':
         // do something
-        printf("entered  p\n");
         memcpy(port, optarg, sizeof(optarg));
         break;
       case 'd':
@@ -376,6 +367,24 @@ int main(int argc, char** argv) {
   printf("PORT: %s, Path: %s,  File Name: %s\n",port,  path, filename );
 
   int serverport = atoi(port);
+  if (serverport < 70  || serverport > 65600) {
+    printf("Error cannot use this port, resetting to default of 8080\n");
+    serverport = 8080;
+    memcpy(port,"8080",4);
+  }
+
+  if (access(path, F_OK) == -1) {
+    printf("Invalid path, resetting to server home directory\n");
+    getcwd(path, sizeof(path));
+  }
+
+  if(strlen(filename) > 1) {
+    file  = fopen(filename, "w");
+    if (file == NULL) {
+      printf("Error opening or creating file using stdout instead\n");
+      memcpy(filename,"",5000);
+    }
+  }
 
 	struct sockaddr_in serveraddr,clientaddr;
 	serveraddr.sin_family=AF_INET;
@@ -389,22 +398,14 @@ int main(int argc, char** argv) {
   }
   // listen for incoming clients on this port, 10 acts as a backlog
   listen(sockfd,10);
-  printf("start listening\n");
-
   // should we use select?
 
   FD_ZERO(&sockets);
   FD_SET(sockfd, &sockets);
-  printf("select problem\n");
 
   while(1) {
-    printf("whilel loop\n" );
     fd_set tmp_set=sockets;
     int s = select(FD_SETSIZE, &tmp_set, NULL, NULL, &timeout);
-
-
-    printf("selct  is  the issue\n");
-
     int i;
     for(i=0;i<FD_SETSIZE;i++) {
       if (s < 1)  {
@@ -414,7 +415,6 @@ int main(int argc, char** argv) {
         //return 0;
       }
       char buf[5000];
-      //printf("for loop\n");
       if(FD_ISSET(i, &tmp_set)) {
         if (i==sockfd) {
           int len = sizeof(clientaddr);
@@ -425,12 +425,9 @@ int main(int argc, char** argv) {
         } else {
 
           // we are receiving from the client
-          printf("else while\n");
-          printf(" i %d\n", i);
-          int val = recv(i,buf,5000,0);
-          printf("val- %d\n", val);
 
-          //printf("buf  %s\n", buf);
+          int val = recv(i,buf,5000,0);
+
           char holder[5000];
           memcpy(holder,buf,5000);
           if(strncmp(buf,"POST", 4) == 0) {
@@ -441,7 +438,6 @@ int main(int argc, char** argv) {
 
 
           if (strncmp(buf,"GET", 3) == 0) {
-            printf("get\n");
             // we received a get request
            // now parse request into tokens
            char http_path[1000]  =  {0};
@@ -455,100 +451,53 @@ int main(int argc, char** argv) {
            char temp_file_ext[5] =  {0};
            char another_test[10]   =  {0};
            char og_path[100]  =  {0};
-           //this line  may be  the problem
            req_path = strtok(buf+3," ");
-           printf("OG  path: %s\n", req_path);
-           printf("path len %d\n",strlen(req_path) );
 
            int path_size = strlen(req_path);
            memcpy(og_path,req_path,path_size);
 
-           // TODO: may need to  change 4 to something else
-          // file_extension = req_path + (path_size - 4);
            http_version = strtok(NULL, " ");
-           printf("http  tst %s\n",  http_version);
            if (http_version !=  NULL) {
-             printf("in if\n" );
              ignore_me = strtok(NULL, "/r/n");
-             printf("http_version  %s\n",http_version );
-             printf("this is the issue?\n");
+
              memcpy(format_http,http_version,9);
-             printf("this is the issue?\n");
-
-
-             printf("formatted %s\n", http_version);
-             printf("test\n");
-             //strcpy(another_test, http_version);
-             printf("more tests\n");
 
              pre_file_extension = strtok(req_path, ".");
              file_extension = strtok(NULL,"");
-             printf("file ext  %s\n", file_extension);
-             printf("strtok not the problem\n");
            } else {
-             printf("yay\n");
+             // request is missing  info
              continue;
            }
 
            if (strncmp(http_version, "HTTP/1.1",8) == 0) {
              // now we need to locate path location
-             printf("http  version  %s\n", format_http);
              memcpy(http_path, path, strlen(path));
-             printf("HTTP path: %s\n", http_path);
+
+             // if no file specified open index.html
              if (strlen(req_path) <= 1 || strlen(file_extension) <=1) {
 
-               printf("%s\n",file_extension );
                memcpy(http_path+strlen(path),"/index.html",11);
-              // memcpy(temp_http,file_extension,7);
-              // memcpy(file_extension,file_ext,4);
+
                memcpy(temp_file_ext,"html",4);
-               printf("tmp %s\n", temp_file_ext);
-               printf("using index.html\n");
-               printf("path %s\n", http_path);
-               printf("strlen  %d\n",strlen(http_path) );
-               printf("formatted http %s\n", format_http);
-               //  do  nothing
+
 
              } else {
-               printf("yikes %d\n", strlen(req_path));
                memcpy(http_path+strlen(path),og_path,strlen(og_path));
                memcpy(temp_file_ext,file_extension,strlen(file_extension));
-
-              // memcpy(http_path+strlen(path)+strlen(req_path),".",1);
-               // memcpy(http_path+strlen(path)+strlen(req_path),file_extension,strlen(file_extension));
-               printf("new path: %s\n",http_path );
 
              }
 
              if (access(http_path, F_OK) != -1) {
 
-
                int request_code = 200;
-               //file exists
-               // will want a 200 response cod
-               printf("file exists\n");
-               printf("f http %s\n", format_http);
-               printf("file ext%s\n", file_extension);
-               printf("u better work %s\n", another_test);
 
                sendHTTPresoponse(holder,1,"", http_path, 200, temp_file_ext,i);
-               //printf("socket %d\n", i);
 
              }  else  {
-               printf("404 error\n");
                sendHTTPresoponse(holder, 1,"", "/Users/kaylinzaroukian/cis457/cis457-project4/404err.html", 404, "html",i);
-               //404 error file not found\
              }
            }
-           // } else {
-           //   //  send a 400 Bad Request Error
-           //
-           // }
 
-
-          // } else {
-            // error checking  for non get  requests
-            // we don't actually want to do anything here
           }  else {
             printf("NOT GET\n");
             //sendHTTPresoponse(holder, 1,"", "/Users/kaylinzaroukian/cis457/cis457-project4/501err.html", 501, "html",i);
@@ -564,7 +513,5 @@ int main(int argc, char** argv) {
 
 
   }
-  }
   return 0;
-
-}
+  }
