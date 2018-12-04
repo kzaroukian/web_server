@@ -279,7 +279,7 @@ int main(int argc, char** argv) {
   char filename[5000];
 
   struct timeval timeout;
-	timeout.tv_sec = 2000000;
+	timeout.tv_sec = 20;
 	timeout.tv_usec = 0;
 
   int opt = 0;
@@ -289,6 +289,7 @@ int main(int argc, char** argv) {
         memcpy(port, optarg, sizeof(optarg));
         break;
       case 'd':
+        memset(path,0,5000);
         memcpy(path,optarg,sizeof(optarg));
         break;
       case 'l':
@@ -311,21 +312,21 @@ int main(int argc, char** argv) {
   printf("PORT: %s, Path: %s,  File Name: %s\n",port,  path, filename );
 
   int serverport = atoi(port);
-  // if (serverport < 70  || serverport > 65600) {
-  //   printf("Error cannot use this port, resetting to default of 8080\n");
-  //   serverport = 8080;
-  //   memcpy(port,"8080",4);
-  // }
-  //  if (access(path, F_OK) == -1) {
-  //   printf("Invalid path, resetting to server home directory\n");
-  //   getcwd(path, sizeof(path));
-  // }
-  //  if(strlen(filename) > 1) {
-  //    //using_file = 1;
-  //    //memcpy(filename2,filename,strlen(filename));
-  // } else {
-  //   using_file = 0;
-  // }
+  if (serverport < 70  || serverport > 65600) {
+    printf("Error cannot use this port, resetting to default of 8080\n");
+    serverport = 8080;
+    memcpy(port,"8080",4);
+  }
+   if (access(path, F_OK) == -1) {
+    printf("Invalid path, resetting to server home directory\n");
+    getcwd(path, sizeof(path));
+  }
+   if(strlen(filename) > 1) {
+     //using_file = 1;
+     //memcpy(filename2,filename,strlen(filename));
+  } else {
+    using_file = 0;
+  }
   using_file= 0;
 
 	struct sockaddr_in serveraddr,clientaddr;
