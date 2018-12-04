@@ -11,9 +11,34 @@
 #include <time.h>
 #include <sys/select.h>
 
+//Project 4  by Kaylin Zaroukian
+
 fd_set sockets;
+char* filename2;
+// FILE* file;
+int using_file;
+
+void write_to_file(char* filename, char* summary) {
+  FILE* file;
+  file  = fopen(filename, "w");
+  if (file == NULL) {
+    printf("Error opening or creating file using stdout instead\n");
+    memcpy(filename,"",strlen(filename));
+    using_file=0;
+    printf("%s\n", summary);
+  } else {
+    // write to file
+    fprintf(file,"%s\n",summary);
+  }
+
+}
 
 int sendHTTPresoponse(char* holder, int v, char* version, char* path, int request_code, char* file_ext, int socket) {
+    char summary[5000];
+    memcpy(summary, "\nREQUEST\n", 9);
+    memcpy(summary+8,holder,strlen(holder));
+    int sum_size = 8 + strlen(holder);
+
     time_t  current_time  =  time(NULL);
     struct tm tm = *localtime(&current_time);
     char current_date[37];
@@ -75,7 +100,7 @@ int sendHTTPresoponse(char* holder, int v, char* version, char* path, int reques
 
 
     char msg_to_send[100000];
-
+    memcpy(summary+sum_size,"\nRESPONSE\n",10);
 
       char r_code[9];
       char final_val[19];
@@ -151,14 +176,15 @@ int sendHTTPresoponse(char* holder, int v, char* version, char* path, int reques
       mc_length += strlen(current_date);
       memcpy(msg_to_send+mc_length, header_last_modified, strlen(header_last_modified));
       mc_length +=  strlen(header_last_modified);
-      memcpy(msg_to_send+mc_length, content_length, strlen(content_length)-2);
-      mc_length += strlen(content_length)-2;
+      memcpy(msg_to_send+mc_length, content_length, strlen(content_length));
+      mc_length += strlen(content_length);
       memcpy(msg_to_send+mc_length, cType, strlen(cType));
       mc_length += strlen(cType);
       memcpy(msg_to_send+mc_length,  connection_type, strlen(connection_type));
       mc_length += strlen(connection_type);
       memcpy(msg_to_send+mc_length,"\r\n",2);
       mc_length+=2;
+      memcpy(summary+sum_size+10,msg_to_send,strlen(msg_to_send));
       memcpy(msg_to_send+mc_length,contents,path_length);
       printf("%s\n", msg_to_send);
 
@@ -180,6 +206,8 @@ int sendHTTPresoponse(char* holder, int v, char* version, char* path, int reques
         memcpy(to_send+mc_length, connection_type, strlen(connection_type));
         mc_length += strlen(connection_type);
         memcpy(to_send+mc_length,"\r\n",2);
+        memcpy(summary+sum_size+10,to_send,strlen(to_send));
+
         mc_length += 2;
         memcpy(to_send+mc_length, contents, path_length);
 
@@ -204,6 +232,8 @@ int sendHTTPresoponse(char* holder, int v, char* version, char* path, int reques
         mc_length += strlen(connection_type);
         memcpy(to_send_2+mc_length,"\r\n",2);
         mc_length += 2;
+        memcpy(summary+sum_size+10,to_send_2,strlen(to_send_2));
+
         memcpy(to_send_2+mc_length, contents, path_length);
         int d = send(socket, to_send_2, strlen(to_send_2),  0);
 
@@ -212,6 +242,13 @@ int sendHTTPresoponse(char* holder, int v, char* version, char* path, int reques
       }
     }
 
+    if (using_file == 1) {
+
+      //fwrite(summary,1, sizeof(summary),file);
+
+    } else {
+      printf("%s\n", summary);
+    }
     return 0;
 }
 
@@ -229,9 +266,10 @@ int main(int argc, char** argv) {
   char path[5000];
   // sets path to current directory by default
   getcwd(path, sizeof(path));
+  using_file=0;
 
 
-  FILE* file;
+  //FILE* file;
   char filename[5000];
 
   struct timeval timeout;
@@ -277,11 +315,10 @@ int main(int argc, char** argv) {
     getcwd(path, sizeof(path));
   }
    if(strlen(filename) > 1) {
-    file  = fopen(filename, "w");
-    if (file == NULL) {
-      printf("Error opening or creating file using stdout instead\n");
-      memcpy(filename,"",5000);
-    }
+     //using_file = 1;
+     //memcpy(filename2,filename,strlen(filename));
+  } else {
+    using_file = 0;
   }
 
 	struct sockaddr_in serveraddr,clientaddr;
