@@ -130,7 +130,7 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
 
       // will probably need to set connection type differentlybut for now  thisw ill work
       char connection_type[24];
-      if  (request_code  == 200) {
+      if  (request_code  == 200  ||  request_code  == 304) {
         memcpy(connection_type, "Connection: keep-alive\r\n",24);
         printf("ct %s\n", connection_type);
       }  else {
@@ -210,6 +210,43 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
         printf("sock %d\n", d);
         printf("actual socket  %d\n", socket);
 
+
+      } else if (request_code  ==  501) {
+        char to_send_2[1000];
+        printf("501 error \n");
+        // memcpy(to_send,"HTTP/1.1 404 NOT FOUND\r\n", 24);
+        // memcpy(to_send+24,"Connection: close\r\n", 19);
+        // memcpy(to_send+24+19, "Content-Type: text/html\r\n",25);
+        // memcpy(to_send+24+19+25, "\r\n",2);
+        // char* body = "<html><body> Not Found </body></html>";
+        // memcpy(to_send+24+19+25+2, body,  strlen(body));
+        // int d = send(socket, to_send, 100000,  0);
+        // printf("sock %d\n", d);
+
+        int mc_length = 30;
+        memcpy(to_send_2,"HTTP/1.1 501 NOT IMPLEMENTED\r\n", 30);
+        memcpy(to_send_2+mc_length, current_date, strlen(current_date));
+        mc_length += strlen(current_date);
+        // memcpy(msg_to_send+mc_length, "Server: GVSU\r\n", 14);
+        // mc_length += 14;
+        memcpy(to_send_2+mc_length, header_last_modified, strlen(header_last_modified));
+        mc_length +=  strlen(header_last_modified);
+        memcpy(to_send_2+mc_length, content_length, strlen(content_length));
+        mc_length += strlen(content_length);
+        memcpy(to_send_2+mc_length, cType, strlen(cType));
+        mc_length += strlen(cType);
+        memcpy(to_send_2+mc_length, connection_type, strlen(connection_type));
+        mc_length += strlen(connection_type);
+        memcpy(to_send_2+mc_length,"\r\n",2);
+        mc_length += 2;
+        char* body = "<html><body> 501 Error: Not Implemented </body></html>";
+        memcpy(to_send_2+mc_length, body, strlen(body));
+
+        printf("Msg: %s\n", to_send_2);
+
+        int d = send(socket, to_send_2, strlen(to_send_2)+path_length,  0);
+        printf("sock %d\n", d);
+        printf("actual socket  %d\n", socket);
 
       }
 
@@ -437,6 +474,9 @@ int main(int argc, char** argv) {
           // } else {
             // error checking  for non get  requests
             // we don't actually want to do anything here
+          }  else {
+            sendHTTPresoponse(1,"", "/Users/kaylinzaroukian/cis457/cis457-project4/501err.html", 501, "html",i);
+
           }
 
           // FD_CLR(i, &sockets);
