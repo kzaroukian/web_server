@@ -170,7 +170,7 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
       printf("actual socket  %d\n", socket);
 
     } else {
-      if (request_code  =  404) {
+      if (request_code  ==  404) {
         char to_send[1000];
         printf("404 error \n");
         // memcpy(to_send,"HTTP/1.1 404 NOT FOUND\r\n", 24);
@@ -204,8 +204,7 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
 
         printf("Msg: %s\n", to_send);
 
-        // int d = send(socket, to_send, strlen(to_send)+path_length,  0);
-        int d = send(socket, to_send, 160000,  0);
+        int d = send(socket, to_send, strlen(to_send)+path_length,  0);
 
         printf("sock %d\n", d);
         printf("actual socket  %d\n", socket);
