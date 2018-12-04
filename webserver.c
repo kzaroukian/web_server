@@ -92,6 +92,12 @@ int sendHTTPresoponse(char* holder, int v, char* version, char* path, int reques
       if (difftime(date1, date2) == 0) {
         request_code  = 304;
       }
+      printf("%s\n",data );
+      printf("%s\n",modified_date );
+      printf("date comp %d\n",strncmp(data,modified_date,29) );
+      if(strncmp(data,date,29)<=0) {
+        request_code = 304;
+      }
 
 
     }
