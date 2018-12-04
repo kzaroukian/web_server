@@ -86,12 +86,6 @@ int sendHTTPresoponse(char* holder, int v, char* version, char* path, int reques
       struct tm mod_tm = {0};
       strptime(data, "%a, %d %b %Y %H:%M:%S %Z", &mod_tm);
 
-      time_t date1 =  mktime(&mod_tm);
-      time_t date2  = mktime(&file_tm);
-
-      if (difftime(date1, date2) == 0) {
-        request_code  = 304;
-      }
       printf("%s\n",data );
       printf("%s\n",modified_date );
       printf("date comp %d\n",strncmp(data,modified_date,29) );
