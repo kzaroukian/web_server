@@ -13,7 +13,7 @@
 
 fd_set sockets;
 
-int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* file_ext, int socket) {
+int sendHTTPresoponse(char* holder, int v, char* version, char* path, int request_code, char* file_ext, int socket) {
     printf("entered send  response\n");
     time_t  current_time  =  time(NULL);
     struct tm tm = *localtime(&current_time);
@@ -29,6 +29,60 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
     stat(path,&last_modified_time);
     char modified_date[100];
     struct tm file_tm = *localtime(&last_modified_time.st_mtime);
+
+    char* first_split;
+    char* banana_split;
+    char data[40];
+    printf("%s", holder);
+    first_split = strstr(holder, "If-Modified-Since");
+    if (first_split != NULL) {
+      printf("FOUND\n");
+      // get position
+      char* t1= strtok(holder, "\r\n");
+      printf("no seg fault 1\n");
+      printf("b %s\n", t1);
+
+
+      char* t2 = strtok(NULL,"\r\n");
+      printf("no seg fault 2\n");
+
+      char* t3 = strtok(NULL,"\r\n");
+      printf("no seg fault 3\n");
+
+      char* t4  = strtok(NULL,"\r\n");
+      printf("no seg fault 4\n");
+
+      char* t5  =  strtok(NULL,"\r\n");
+      printf("no seg fault 5\n");
+
+      char* t6  = strtok(NULL,"\r\n");
+      printf("no seg fault 6\n");
+
+      char* t7 = strtok(NULL,"\r\n");
+      printf("no seg fault 7\n");
+
+      char* t8 = strtok(NULL,"\r\n");
+      printf("no seg fault 8\n");
+
+      banana_split = strtok(NULL,"\r\n");
+      printf("no seg fault 9\n");
+      printf("b %s\n", banana_split);
+
+      memcpy(data, banana_split+17, 29);
+      printf("%s\n", data);
+
+      struct tm mod_tm = {0};
+      strptime(data, "%a, %d %b %Y %H:%M:%S %Z", &mod_tm);
+
+      time_t date1 =  mktime(&mod_tm);
+      time_t date2  = mktime(&file_tm);
+
+      if (difftime(date1, date2) == 0) {
+        request_code  = 304;
+      }
+
+
+    }
     //strftime(modified_date,100, "%")
     //modified_date = asctime(&file_tm);
     strftime(modified_date, sizeof modified_date, "%a, %d %b %Y %H:%M:%S %Z", &file_tm);
@@ -107,6 +161,7 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
       unsigned int path_length = ftell(f);
       fseek(f, 0, SEEK_SET);
       printf("f seek done\n");
+
       char* file_size[16];
       //itoa(file_size,path_length,);
       sprintf(file_size, "%d", path_length);
@@ -114,6 +169,9 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
       memcpy(content_length, "Content-Length: ", 16);
       memcpy(content_length + 16,file_size,strlen(file_size));
       memcpy(content_length+strlen(file_size)+16, "\r\n",2);
+
+      char contents[path_length];
+      fread (contents, 1, path_length, f);
       //memcpy(content_length+strlen(content_length)+16+2,"\0",1);
       printf("f l %s\n", content_length);
 
@@ -130,16 +188,23 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
 
       // now lets put together the response
       // int mc_length = strlen(r_code);
-      if (request_code == 200) {
+      if (request_code == 200 || request_code ==  304) {
 
-      int mc_length = 17;
 
 
       printf("Putting  it all together\n");
       // memcpy(msg_to_send, r_code, strlen(r_code));
       // memcpy(msg_to_send+mc_length, code, strlen(code));
       // mc_length += strlen(code);
-      memcpy(msg_to_send,"HTTP/1.1 200 OK\r\n", 17);
+      int  mc_length;
+      if (request_code == 200) {
+        memcpy(msg_to_send,"HTTP/1.1 200 OK\r\n", 17);
+        mc_length = 17;
+
+      } else {
+        memcpy(msg_to_send,"HTTP/1.1 304 Not Modified\r\n", 27);
+        mc_length = 27;
+      }
       memcpy(msg_to_send+mc_length, current_date, strlen(current_date));
       mc_length += strlen(current_date);
       printf("current date %s\n",current_date );
@@ -157,6 +222,8 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
       memcpy(msg_to_send+mc_length,  connection_type, strlen(connection_type));
       mc_length += strlen(connection_type);
       memcpy(msg_to_send+mc_length,"\r\n",2);
+      mc_length+=2;
+      memcpy(msg_to_send+mc_length,contents,path_length);
 
       printf("Msg: %s\n", msg_to_send);
 
@@ -187,17 +254,15 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
         // mc_length += 14;
         memcpy(to_send+mc_length, header_last_modified, strlen(header_last_modified));
         mc_length +=  strlen(header_last_modified);
-        memcpy(to_send+mc_length, content_length, strlen(content_length));
-        mc_length += strlen(content_length);
+        memcpy(to_send+mc_length, content_length, strlen(content_length)-2);
+        mc_length += strlen(content_length)-2;
         memcpy(to_send+mc_length, cType, strlen(cType));
         mc_length += strlen(cType);
         memcpy(to_send+mc_length, connection_type, strlen(connection_type));
         mc_length += strlen(connection_type);
         memcpy(to_send+mc_length,"\r\n",2);
         mc_length += 2;
-        char* body = "<html><body> 404 Error: Not Found </body></html>";
-        memcpy(to_send+mc_length, body, strlen(body));
-
+        memcpy(to_send+mc_length, contents, path_length);
 
         printf("Msg: %s\n", to_send);
 
@@ -214,14 +279,6 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
       } else if (request_code  ==  501) {
         char to_send_2[1000];
         printf("501 error \n");
-        // memcpy(to_send,"HTTP/1.1 404 NOT FOUND\r\n", 24);
-        // memcpy(to_send+24,"Connection: close\r\n", 19);
-        // memcpy(to_send+24+19, "Content-Type: text/html\r\n",25);
-        // memcpy(to_send+24+19+25, "\r\n",2);
-        // char* body = "<html><body> Not Found </body></html>";
-        // memcpy(to_send+24+19+25+2, body,  strlen(body));
-        // int d = send(socket, to_send, 100000,  0);
-        // printf("sock %d\n", d);
 
         int mc_length = 30;
         memcpy(to_send_2,"HTTP/1.1 501 NOT IMPLEMENTED\r\n", 30);
@@ -231,20 +288,18 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
         // mc_length += 14;
         memcpy(to_send_2+mc_length, header_last_modified, strlen(header_last_modified));
         mc_length +=  strlen(header_last_modified);
-        memcpy(to_send_2+mc_length, content_length, strlen(content_length));
-        mc_length += strlen(content_length);
+        memcpy(to_send_2+mc_length, content_length, strlen(content_length)-1);
+        mc_length += strlen(content_length)-1;
         memcpy(to_send_2+mc_length, cType, strlen(cType));
         mc_length += strlen(cType);
         memcpy(to_send_2+mc_length, connection_type, strlen(connection_type));
         mc_length += strlen(connection_type);
         memcpy(to_send_2+mc_length,"\r\n",2);
         mc_length += 2;
-        char* body = "<html><body> 501 Error: Not Implemented </body></html>";
-        memcpy(to_send_2+mc_length, body, strlen(body));
-
+        memcpy(to_send_2+mc_length, contents, path_length);
         printf("Msg: %s\n", to_send_2);
 
-        int d = send(socket, to_send_2, strlen(to_send_2)+path_length,  0);
+        int d = send(socket, to_send_2, strlen(to_send_2),  0);
         printf("sock %d\n", d);
         printf("actual socket  %d\n", socket);
         close(socket);
@@ -375,7 +430,14 @@ int main(int argc, char** argv) {
           int val = recv(i,buf,5000,0);
           printf("val- %d\n", val);
 
-          printf("buf  %s\n", buf);
+          //printf("buf  %s\n", buf);
+          char holder[5000];
+          memcpy(holder,buf,5000);
+          if(strncmp(buf,"POST", 4) == 0) {
+            printf("post\n");
+            sendHTTPresoponse(holder, 1,"", "/Users/kaylinzaroukian/cis457/cis457-project4/501err.html", 501, "html",i);
+
+          }
 
 
           if (strncmp(buf,"GET", 3) == 0) {
@@ -459,6 +521,8 @@ int main(int argc, char** argv) {
              }
 
              if (access(http_path, F_OK) != -1) {
+
+
                int request_code = 200;
                //file exists
                // will want a 200 response cod
@@ -467,12 +531,12 @@ int main(int argc, char** argv) {
                printf("file ext%s\n", file_extension);
                printf("u better work %s\n", another_test);
 
-               sendHTTPresoponse(1,"", http_path, 200, temp_file_ext,i);
+               sendHTTPresoponse(holder,1,"", http_path, 200, temp_file_ext,i);
                //printf("socket %d\n", i);
 
              }  else  {
                printf("404 error\n");
-               sendHTTPresoponse(1,"", "/Users/kaylinzaroukian/cis457/cis457-project4/404err.html", 404, "html",i);
+               sendHTTPresoponse(holder, 1,"", "/Users/kaylinzaroukian/cis457/cis457-project4/404err.html", 404, "html",i);
                //404 error file not found\
              }
            }
@@ -486,7 +550,8 @@ int main(int argc, char** argv) {
             // error checking  for non get  requests
             // we don't actually want to do anything here
           }  else {
-            sendHTTPresoponse(1,"", "/Users/kaylinzaroukian/cis457/cis457-project4/501err.html", 501, "html",i);
+            printf("NOT GET\n");
+            //sendHTTPresoponse(holder, 1,"", "/Users/kaylinzaroukian/cis457/cis457-project4/501err.html", 501, "html",i);
 
           }
 
