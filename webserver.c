@@ -369,7 +369,7 @@ int main(int argc, char** argv) {
           memcpy(holder,buf,5000);
           if(strncmp(buf,"POST", 4) == 0) {
 
-            sendHTTPresoponse(holder, 1,"", "/Users/kaylinzaroukian/cis457/cis457-project4/501err.html", 501, "html",i);
+            sendHTTPresoponse(holder, 1,"", "501err.html", 501, "html",i);
 
           }
 
@@ -432,7 +432,7 @@ int main(int argc, char** argv) {
 
              }  else  {
 
-               sendHTTPresoponse(holder, 1,"", "/Users/kaylinzaroukian/cis457/cis457-project4/404err.html", 404, "html",i);
+               sendHTTPresoponse(holder, 1,"", "404err.html", 404, "html",i);
                //404 error file not found\
              }
            }
