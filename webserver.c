@@ -290,7 +290,7 @@ int main(int argc, char** argv) {
         break;
       case 'd':
         memset(path,0,5000);
-        memcpy(path,optarg,sizeof(optarg));
+        memcpy(path,optarg,strlen(optarg));
         break;
       case 'l':
         // do something
