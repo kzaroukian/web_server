@@ -90,16 +90,6 @@ int sendHTTPresoponse(char* holder, int v, char* version, char* path, int reques
       char code[10];
 
       memcpy(code,req_code, 6);
-      //strcpy(final_val[version_len],code);
-
-
-      // if (version_len == 0 ) {
-      //
-      //   while (version_len<0) {
-      //     //block to make sure thishappens  first
-      //   }
-      // }
-
 
       memcpy(final_val,r_code,9);
       memcpy(final_val+9,code,10);
@@ -348,6 +338,22 @@ int main(int argc, char** argv) {
   printf("PORT: %s, Path: %s,  File Name: %s\n",port,  path, filename );
 
   int serverport = atoi(port);
+  if (serverport < 70  || serverport > 65600) {
+    printf("Error cannot use this port, resetting to default of 8080\n");
+    serverport = 8080;
+    memcpy(port,"8080",4);
+  }
+   if (access(path, F_OK) == -1) {
+    printf("Invalid path, resetting to server home directory\n");
+    getcwd(path, sizeof(path));
+  }
+   if(strlen(filename) > 1) {
+    file  = fopen(filename, "w");
+    if (file == NULL) {
+      printf("Error opening or creating file using stdout instead\n");
+      memcpy(filename,"",5000);
+    }
+  }
 
 	struct sockaddr_in serveraddr,clientaddr;
 	serveraddr.sin_family=AF_INET;
@@ -490,7 +496,7 @@ int main(int argc, char** argv) {
                //printf("socket %d\n", i);
 
              }  else  {
-               
+
                sendHTTPresoponse(holder, 1,"", "/Users/kaylinzaroukian/cis457/cis457-project4/404err.html", 404, "html",i);
                //404 error file not found\
              }
