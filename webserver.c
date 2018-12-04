@@ -16,8 +16,13 @@ int sendHTTPresoponse(char* version, char* path, int request_code, char* file_ex
     time_t  current_time  =  time(NULL);
     struct tm tm = *localtime(&current_time);
     char current_date[50];
+    char date[1000];
     memcpy(current_date, "Date: ", 6);
-    char* date = asctime(&tm);
+    //char* date = asctime(&tm);
+    strftime(date, sizeof date, "%a, %d %b %Y %H:%M:%S %Z", &tm);
+    memcpy(current_date+6, date, strlen(date));
+    memcpy(current_date+6+strlen(date) , "\r\n",2);
+
 
     // may need to do something else
     //printf("current date: %s\n", date);
@@ -25,17 +30,15 @@ int sendHTTPresoponse(char* version, char* path, int request_code, char* file_ex
     // get the last time our file was last modified
     struct stat last_modified_time;
     stat(path,&last_modified_time);
-    char* modified_date;
+    char modified_date[1000];
     struct tm file_tm = *localtime(&last_modified_time.st_mtime);
     //strftime(modified_date,100, "%")
-    modified_date = asctime(&file_tm);
-
+    //modified_date = asctime(&file_tm);
+    strftime(modified_date, sizeof modified_date, "%a, %d %b %Y %H:%M:%S %Z", &file_tm);
 
     printf("modified date  %s\n", modified_date);
 
-    memcpy(current_date, date, strlen(date));
-
-    char msg_to_send[5000];
+    char msg_to_send[1000];
     printf("1\n");
     printf("version %s\n", version);
     printf("2\n");
@@ -79,12 +82,12 @@ int sendHTTPresoponse(char* version, char* path, int request_code, char* file_ex
       // memcpy(header_date+strlen(header_date),"\r\n",2);
       // printf("header_date %s\n", header_date);
 
-      char server[14] = {0};
-      memcpy(server,"Server: GVSU\r\n", 14);
-      printf("server %s\n", server);
+      // char server[14] = {0};
+      // memcpy(server,"Server: GVSU", 12);
+      // printf("server %s\n", server);
 
       char header_last_modified[120];
-      memcpy(header_last_modified, "Last Modified: ",15);
+      memcpy(header_last_modified, "Last-Modified: ",15);
       memcpy(header_last_modified+15, modified_date, strlen(modified_date));
       memcpy(header_last_modified+strlen(header_last_modified),"\r\n",2);
       printf("header_lm %s\n", header_last_modified);
@@ -143,19 +146,23 @@ int sendHTTPresoponse(char* version, char* path, int request_code, char* file_ex
       memcpy(msg_to_send,"HTTP/1.1 200 OK\r\n", 17);
       memcpy(msg_to_send+mc_length, current_date, strlen(current_date));
       mc_length += strlen(current_date);
-      memcpy(msg_to_send+mc_length, server, strlen(server));
-      mc_length += strlen(server);
+      // memcpy(msg_to_send+mc_length, "Server: GVSU\r\n", 14);
+      // mc_length += 14;
       memcpy(msg_to_send+mc_length, header_last_modified, strlen(header_last_modified));
       mc_length +=  strlen(header_last_modified);
-      memcpy(msg_to_send+mc_length, cType, strlen(cType));
-      mc_length += strlen(cType);
       memcpy(msg_to_send+mc_length, content_length, strlen(content_length));
       mc_length += strlen(content_length);
+      memcpy(msg_to_send+mc_length, cType, strlen(cType));
+      mc_length += strlen(cType);
       memcpy(msg_to_send+mc_length,  connection_type, strlen(connection_type));
+      mc_length += strlen(connection_type);
+      memcpy(msg_to_send+mc_length,"\r\n",2);
 
       printf("Msg: %s\n", msg_to_send);
 
-      send(socket, msg_to_send, strlen(msg_to_send),  0);
+      int d = send(socket, msg_to_send, strlen(msg_to_send)+path_length,  0);
+      printf("sock %d\n", d);
+      printf("actual socket  %d\n", socket);
 
     } else {
 
@@ -183,6 +190,7 @@ int main(int argc, char** argv) {
   // sets path to current directory by default
   getcwd(path, sizeof(path));
 
+
   FILE* file;
   char filename[5000];
 
@@ -203,7 +211,6 @@ int main(int argc, char** argv) {
       case 'd':
         // do something
         memset(path,0,5000);
-        memcpy(path, optarg, sizeof(optarg));
         break;
       case 'l':
         // do something
@@ -257,7 +264,7 @@ int main(int argc, char** argv) {
     int i;
     for(i=0;i<FD_SETSIZE;i++) {
       char buf[5000];
-      printf("for loop\n");
+      //printf("for loop\n");
       if(FD_ISSET(i, &tmp_set)) {
         if (i==sockfd) {
           int len = sizeof(clientaddr);
@@ -266,9 +273,12 @@ int main(int argc, char** argv) {
           // add client address to struct
           FD_SET(clientsocket, &sockets);
         } else {
+
           // we are receiving from the client
           printf("else while\n");
+          printf(" i %d\n", i);
           int val = recv(i,buf,5000,0);
+          printf("val- %d\n", val);
 
           printf("buf  %s\n", buf);
 
@@ -296,34 +306,40 @@ int main(int argc, char** argv) {
            // TODO: may need to  change 4 to something else
           // file_extension = req_path + (path_size - 4);
            http_version = strtok(NULL, " ");
-           ignore_me = strtok(NULL, "/r/n");
-           printf("http_version  %s\n",http_version );
+           if (strlen(http_version) > 1) {
+             ignore_me = strtok(NULL, "/r/n");
+             printf("http_version  %s\n",http_version );
 
-           memcpy(format_http,http_version,9);
-           printf("formatted %s\n", format_http);
-           strcpy(another_test, format_http);
+             memcpy(format_http,http_version,9);
 
-           file_extension = strtok(req_path, ".");
-           printf("file ext  %s\n", file_extension);
-           printf("strtok not the problem\n");
+             printf("formatted %s\n", format_http);
+
+             strcpy(another_test, format_http);
+
+             file_extension = strtok(req_path, ".");
+             printf("file ext  %s\n", file_extension);
+             printf("strtok not the problem\n");
+           }
+
 
            if (strncmp(http_version, "HTTP/1.1",8) == 0) {
              // now we need to locate path location
              printf("http  version  %s\n", format_http);
              memcpy(http_path, path, strlen(path));
              printf("HTTP path: %s\n", http_path);
-             if (strlen(req_path) <= 1) {
+             if (strlen(req_path) <= 1 || strlen(file_extension) <=1) {
 
                printf("%s\n",file_extension );
                memcpy(http_path+strlen(path),"/index.html",11);
-               //memcpy(temp_http,file_extension,7);
-               memcpy(file_extension,"html",4);
-               memcpy(temp_file_ext,file_extension,4);
+              // memcpy(temp_http,file_extension,7);
+              // memcpy(file_extension,file_ext,4);
+               memcpy(temp_file_ext,"html",4);
                printf("tmp %s\n", temp_file_ext);
                printf("using index.html\n");
                printf("path %s\n", http_path);
                printf("strlen  %d\n",strlen(http_path) );
                printf("formatted http %s\n", format_http);
+               //  do  nothing
 
              } else {
                printf("yikes\n");
@@ -341,6 +357,7 @@ int main(int argc, char** argv) {
                printf("u better work %s\n", another_test);
 
                sendHTTPresoponse(another_test, http_path, 200, temp_file_ext,i);
+               //printf("socket %d\n", i);
 
              }  else  {
                printf("404 error\n");
