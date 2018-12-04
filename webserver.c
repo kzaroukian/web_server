@@ -11,6 +11,8 @@
 #include <time.h>
 #include <sys/select.h>
 
+fd_set sockets;
+
 int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* file_ext, int socket) {
     printf("entered send  response\n");
     time_t  current_time  =  time(NULL);
@@ -21,7 +23,7 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
     //char* date = asctime(&tm);
     strftime(date, sizeof date, "%a, %d %b %Y %H:%M:%S %Z", &tm);
     memcpy(current_date+6, date, strlen(date));
-    memcpy(current_date+6+strlen(date) , "\r\n",2);
+    //memcpy(current_date+6+strlen(date) ,"\r\n",2);
 
 
     // may need to do something else
@@ -74,16 +76,6 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
       printf("r_code %s\n", r_code);
       printf("final  %s\n", final_val);
       printf("2\n");
-
-      // char header_date[120];
-      // memcpy(header_date, "Date: ",6);
-      // memcpy(header_date+6, date, strlen(date));
-      // memcpy(header_date+strlen(header_date),"\r\n",2);
-      // printf("header_date %s\n", header_date);
-
-      // char server[14] = {0};
-      // memcpy(server,"Server: GVSU", 12);
-      // printf("server %s\n", server);
 
       char header_last_modified[120];
       memcpy(header_last_modified, "Last-Modified: ",15);
@@ -153,9 +145,13 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
       memcpy(msg_to_send,"HTTP/1.1 200 OK\r\n", 17);
       memcpy(msg_to_send+mc_length, current_date, strlen(current_date));
       mc_length += strlen(current_date);
+      printf("current date %s\n",current_date );
+      printf("\n" );
       // memcpy(msg_to_send+mc_length, "Server: GVSU\r\n", 14);
       // mc_length += 14;
       memcpy(msg_to_send+mc_length, header_last_modified, strlen(header_last_modified));
+      printf("mod date %s\n",header_last_modified );
+
       mc_length +=  strlen(header_last_modified);
       memcpy(msg_to_send+mc_length, content_length, strlen(content_length));
       mc_length += strlen(content_length);
@@ -168,6 +164,8 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
       printf("Msg: %s\n", msg_to_send);
 
       int d = send(socket, msg_to_send, strlen(msg_to_send)+path_length,  0);
+      //int d = send(socket, msg_to_send, 100000,  0);
+
       printf("sock %d\n", d);
       printf("actual socket  %d\n", socket);
 
@@ -206,9 +204,15 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
 
         printf("Msg: %s\n", to_send);
 
-        int d = send(socket, to_send, strlen(to_send)+path_length,  0);
+        // int d = send(socket, to_send, strlen(to_send)+path_length,  0);
+        int d = send(socket, to_send, 160000,  0);
+
         printf("sock %d\n", d);
         printf("actual socket  %d\n", socket);
+
+        close(socket);
+        FD_CLR(socket, &sockets);
+
 
 
       } else if (request_code  ==  501) {
@@ -247,7 +251,8 @@ int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* 
         int d = send(socket, to_send_2, strlen(to_send_2)+path_length,  0);
         printf("sock %d\n", d);
         printf("actual socket  %d\n", socket);
-
+        close(socket);
+        FD_CLR(socket, &sockets);
       }
 
 
@@ -283,6 +288,10 @@ int main(int argc, char** argv) {
   //   {"docroot",2,NULL,'d'}
   //   {"logfile",2,NULL,'l'}
   // };
+
+  struct timeval timeout;
+	timeout.tv_sec = 2000000;
+	timeout.tv_usec = 0;
 
   int opt = 0;
   while((opt = getopt(argc, argv, "p:d:l:")) !=  -1) {
@@ -333,7 +342,6 @@ int main(int argc, char** argv) {
 
   // should we use select?
 
-  fd_set sockets;
   FD_ZERO(&sockets);
   FD_SET(sockfd, &sockets);
   printf("select problem\n");
@@ -341,12 +349,19 @@ int main(int argc, char** argv) {
   while(1) {
     printf("whilel loop\n" );
     fd_set tmp_set=sockets;
-    select(FD_SETSIZE, &tmp_set, NULL, NULL, NULL);
+    int s = select(FD_SETSIZE, &tmp_set, NULL, NULL, &timeout);
+
 
     printf("selct  is  the issue\n");
 
     int i;
     for(i=0;i<FD_SETSIZE;i++) {
+      if (s < 1)  {
+        printf("timeout\n");
+        close(i);
+        FD_CLR(i, &sockets);
+        //return 0;
+      }
       char buf[5000];
       //printf("for loop\n");
       if(FD_ISSET(i, &tmp_set)) {
