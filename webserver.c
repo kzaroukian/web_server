@@ -11,7 +11,7 @@
 #include <time.h>
 #include <sys/select.h>
 
-int sendHTTPresoponse(char* version, char* path, int request_code, char* file_ext, int socket) {
+int sendHTTPresoponse(int v, char* version, char* path, int request_code, char* file_ext, int socket) {
     printf("entered send  response\n");
     time_t  current_time  =  time(NULL);
     struct tm tm = *localtime(&current_time);
@@ -43,7 +43,6 @@ int sendHTTPresoponse(char* version, char* path, int request_code, char* file_ex
     printf("version %s\n", version);
     printf("2\n");
 
-    if (request_code == 200) {
       printf("entered\n");
       printf("v:  %s\n", version);
       char r_code[9];
@@ -131,11 +130,19 @@ int sendHTTPresoponse(char* version, char* path, int request_code, char* file_ex
 
       // will probably need to set connection type differentlybut for now  thisw ill work
       char connection_type[24];
-      memcpy(connection_type, "Connection: keep-alive\r\n",24);
-      printf("ct %s\n", connection_type);
+      if  (request_code  == 200) {
+        memcpy(connection_type, "Connection: keep-alive\r\n",24);
+        printf("ct %s\n", connection_type);
+      }  else {
+        memcpy(connection_type, "Connection: close\r\n",24);
+        printf("ct %s\n", connection_type);
+      }
+
 
       // now lets put together the response
       // int mc_length = strlen(r_code);
+      if (request_code == 200) {
+
       int mc_length = 17;
 
 
@@ -165,6 +172,46 @@ int sendHTTPresoponse(char* version, char* path, int request_code, char* file_ex
       printf("actual socket  %d\n", socket);
 
     } else {
+      if (request_code  =  404) {
+        char to_send[1000];
+        printf("404 error \n");
+        // memcpy(to_send,"HTTP/1.1 404 NOT FOUND\r\n", 24);
+        // memcpy(to_send+24,"Connection: close\r\n", 19);
+        // memcpy(to_send+24+19, "Content-Type: text/html\r\n",25);
+        // memcpy(to_send+24+19+25, "\r\n",2);
+        // char* body = "<html><body> Not Found </body></html>";
+        // memcpy(to_send+24+19+25+2, body,  strlen(body));
+        // int d = send(socket, to_send, 100000,  0);
+        // printf("sock %d\n", d);
+
+        int mc_length =  26;
+        memcpy(to_send,"HTTP/1.1 404 NO RESPONSE\r\n", 26);
+        memcpy(to_send+mc_length, current_date, strlen(current_date));
+        mc_length += strlen(current_date);
+        // memcpy(msg_to_send+mc_length, "Server: GVSU\r\n", 14);
+        // mc_length += 14;
+        memcpy(to_send+mc_length, header_last_modified, strlen(header_last_modified));
+        mc_length +=  strlen(header_last_modified);
+        memcpy(to_send+mc_length, content_length, strlen(content_length));
+        mc_length += strlen(content_length);
+        memcpy(to_send+mc_length, cType, strlen(cType));
+        mc_length += strlen(cType);
+        memcpy(to_send+mc_length, connection_type, strlen(connection_type));
+        mc_length += strlen(connection_type);
+        memcpy(to_send+mc_length,"\r\n",2);
+        mc_length += 2;
+        char* body = "<html><body> 404 Error: Not Found </body></html>";
+        memcpy(to_send+mc_length, body, strlen(body));
+
+
+        printf("Msg: %s\n", to_send);
+
+        int d = send(socket, to_send, strlen(to_send)+path_length,  0);
+        printf("sock %d\n", d);
+        printf("actual socket  %d\n", socket);
+
+
+      }
 
 
     }
@@ -287,17 +334,17 @@ int main(int argc, char** argv) {
             printf("get\n");
             // we received a get request
            // now parse request into tokens
-           char http_path[1000];
-           char *req_path;
-           char *http_version;
-           char format_http[9];
-           char *pre_file_extension;
-           char *file_extension;
-           char* ignore_me;
-           char temp_http[7];
-           char temp_file_ext[5];
-           char another_test[10];
-           char og_path[100];
+           char http_path[1000]  =  {0};
+           char *req_path =  {0};
+           char *http_version =  {0};
+           char format_http[9]  =  {0};
+           char *pre_file_extension =  {0};
+           char *file_extension   =  {0};
+           char* ignore_me  =  {0};
+           char temp_http[7]  =  {0};
+           char temp_file_ext[5] =  {0};
+           char another_test[10]   =  {0};
+           char og_path[100]  =  {0};
            //this line  may be  the problem
            req_path = strtok(buf+3," ");
            printf("OG  path: %s\n", req_path);
@@ -309,22 +356,29 @@ int main(int argc, char** argv) {
            // TODO: may need to  change 4 to something else
           // file_extension = req_path + (path_size - 4);
            http_version = strtok(NULL, " ");
-           if (strlen(http_version) > 1) {
+           printf("http  tst %s\n",  http_version);
+           if (http_version !=  NULL) {
+             printf("in if\n" );
              ignore_me = strtok(NULL, "/r/n");
              printf("http_version  %s\n",http_version );
-
+             printf("this is the issue?\n");
              memcpy(format_http,http_version,9);
+             printf("this is the issue?\n");
 
-             printf("formatted %s\n", format_http);
 
-             strcpy(another_test, format_http);
+             printf("formatted %s\n", http_version);
+             printf("test\n");
+             //strcpy(another_test, http_version);
+             printf("more tests\n");
 
              pre_file_extension = strtok(req_path, ".");
              file_extension = strtok(NULL,"");
              printf("file ext  %s\n", file_extension);
              printf("strtok not the problem\n");
+           } else {
+             printf("yay\n");
+             continue;
            }
-
 
            if (strncmp(http_version, "HTTP/1.1",8) == 0) {
              // now we need to locate path location
@@ -365,15 +419,15 @@ int main(int argc, char** argv) {
                printf("file ext%s\n", file_extension);
                printf("u better work %s\n", another_test);
 
-               sendHTTPresoponse(another_test, http_path, 200, temp_file_ext,i);
+               sendHTTPresoponse(1,"", http_path, 200, temp_file_ext,i);
                //printf("socket %d\n", i);
 
              }  else  {
                printf("404 error\n");
+               sendHTTPresoponse(1,"", "/Users/kaylinzaroukian/cis457/cis457-project4/404err.html", 404, "html",i);
                //404 error file not found\
              }
            }
-
            // } else {
            //   //  send a 400 Bad Request Error
            //
